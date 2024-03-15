@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from "express";
 import HttpStatusCodes from "../../constants/HTTPStatusCode";
 import createHttpError from "http-errors";
 import { HttpError } from "http-errors";
+import { z } from "zod";
+import zodErrorFormatter from "./zodErrorFormatter";
 
 /**
  * custom error handler
@@ -16,17 +18,23 @@ const errorHandler = (
   res: Response,
   _next: NextFunction
 ) => {
+  if (err instanceof z.ZodError) {
+    return res.status(HttpStatusCodes.BAD_REQUEST).json({
+      status: "error",
+      errors: zodErrorFormatter(err),
+      message: "validation error",
+    });
+  }
   if (err instanceof HttpError) {
-    res.status(err.status).json({
+    return res.status(err.status).json({
       status: "error",
       message: err.message,
     });
-  } else {
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
-      status: "error",
-      message: "internal server error",
-    });
   }
+  res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+    status: "error",
+    message: "internal server error",
+  });
 };
 
 /**

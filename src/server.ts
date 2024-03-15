@@ -3,11 +3,15 @@ import morgan from "morgan";
 import helmet from "helmet";
 import cors from "cors";
 import http from "http";
+import "express-async-errors";
+
 // import xss from "xss-clean";
 import mongoSanitize from "express-mongo-sanitize";
-import { connectDB } from "./config/db";
+import { connectDB } from "./db/db";
 import { errorHandler, notFoundError } from "./lib/middlewares/errorHandler";
 import HttpStatusCodes from "./constants/HTTPStatusCode";
+import routes from "./routes";
+import { auth } from "./modules/auth/middlewares/auth";
 
 // setting up the express app
 const app = express();
@@ -20,7 +24,7 @@ const start = async () => {
     console.log(
       `Connected to the Database: ${conn.connection.host}:${conn.connection.port}`
     );
-    server.listen(process.env.PORT, () => {
+    server.listen(process.env.PORT || 7000, () => {
       console.log(`Listening on port ${process.env.PORT}`);
     });
   } catch (err) {
@@ -52,7 +56,14 @@ app.get("/", (req, res, next) => {
   });
 });
 
-// app.use(routes);
+app.get("/protected", auth, (req, res, next) => {
+  res.status(HttpStatusCodes.OK).json({
+    status: "success",
+    message: "protected resource",
+  });
+});
+
+app.use("/api/v1", routes);
 
 // 404 Error
 app.use(notFoundError);
